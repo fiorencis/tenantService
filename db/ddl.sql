@@ -89,6 +89,10 @@ CREATE TABLE IF NOT EXISTS application.license
 
 TABLESPACE pg_default; 
 
+ALTER TABLE IF EXISTS infra.user
+    ADD CONSTRAINT user_ukey_username UNIQUE (username);
+
+
 -- foreign keys
 ALTER TABLE IF EXISTS infra.acl
     ADD CONSTRAINT acl_fkey_tenant FOREIGN KEY (tenant_id)

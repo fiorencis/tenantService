@@ -10,6 +10,9 @@ public class UserDto
     
     public bool Admin { get; set; } = false;
 
+    public string Password { get; set; }
+    public string PasswordHash { get; set; }
+
     public override string ToString()
     {
         return $"UserDto(Id: {Id}, Username: {Username}, FullName: {FullName}, Email: {Email}, Status: {Status}, Admin: {Admin})";

@@ -15,8 +15,7 @@ public class InfrastructureController : TenantBaseController
     {
         _userService = userService;
     }
-    
-    
+        
     [HttpGet("info")]
     public async Task<IActionResult> Info()
     { 
@@ -46,16 +45,20 @@ public class InfrastructureController : TenantBaseController
         return Ok(new { Id = userId });
     }
 
-    // Tenant Management CRUD operations    
-    // [HttpPost("add-tenant")]
-    // public async Task<IActionResult> AddTenant(TenantOperationRequest request)
-    // {
-    //     _logger.LogDebug($"Adding new Tenant {request.Tenant.Id + "-" + request.Tenant.Name}");
-    //     var tenantDbContext = _dbResolver.GetContextForTenant(request.TenantId);
 
-    //     _vetcDbContext.Tenants.Add(request.Tenant);
-    //     _vetcDbContext.SaveChanges();
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
+    {
+        _logger.LogWarning($"Attempting to login User {request.Username}");
 
-    //     return Ok();
-    // }
+        var isValid = await _userService.ValidateUserCredentialsAsync(request.Username, request.Password);
+
+        if (!isValid)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { Message = "Login successful." });
+    }
+
 }

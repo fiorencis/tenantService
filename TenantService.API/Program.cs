@@ -1,12 +1,14 @@
 // create the configuration file
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
 using TenantService.Infrastructure;
 using TenantService.Infrastructure.Extensions;
 using TenantService.Application.Extensions;
+using TenantService.API.Infrastructure;
 
 // gets appsettings configuration
 IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json").Build();
@@ -69,8 +71,11 @@ builder.Services.AddInfrastructureServices();
 builder.Services.AddApplicationServices();
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 var app = builder.Build();
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthentication();

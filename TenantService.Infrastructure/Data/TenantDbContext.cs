@@ -14,8 +14,12 @@ public class TenantDbContext : DbContext
      protected override void OnModelCreating(ModelBuilder modelBuilder)
      {
           modelBuilder.Entity<User>()
-               .ToTable("user", "public") 
+               .ToTable("user", "infra") 
                .HasKey(u => u.Id).HasName("user_pkey"); 
+
+          modelBuilder.Entity<User>()
+               .HasIndex(u => u.Username)
+               .IsUnique();
 
           modelBuilder.Entity<User>()
                .Property(u => u.Id)
@@ -26,12 +30,12 @@ public class TenantDbContext : DbContext
           modelBuilder.Entity<User>()
                .Property(u => u.Username)
                .HasColumnName("username") 
-               .HasColumnType("varchar(32)") 
+               .HasColumnType("varchar(32)")
                .IsRequired();
 
           modelBuilder.Entity<User>()
                .Property(u => u.FullName)
-               .HasColumnName("fullName")
+               .HasColumnName("fullname")
                .HasColumnType("varchar(256)")
                .IsRequired(); 
 
@@ -42,7 +46,7 @@ public class TenantDbContext : DbContext
                .IsRequired();
 
           modelBuilder.Entity<User>().Property(u => u.PasswordHash)
-               .HasColumnName("passwordHash")
+               .HasColumnName("passwordhash")
                .HasColumnType("varchar(256)");
 
           modelBuilder.Entity<User>()
