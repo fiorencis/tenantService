@@ -116,3 +116,17 @@ ALTER TABLE IF EXISTS application.tenant
     ON UPDATE NO ACTION
     ON DELETE NO ACTION 
     NOT VALID;    
+
+
+CREATE TABLE IF NOT EXISTS infra.refreshtoken 
+(
+    id bigint GENERATED ALWAYS AS IDENTITY,
+    token character varying(256) COLLATE pg_catalog."default" NOT NULL,
+    username character varying(32) COLLATE pg_catalog."default" NOT NULL,
+    expiresat TIMESTAMPTZ NOT NULL,
+    createdat TIMESTAMPTZ NOT NULL,
+    isrevoked boolean NOT NULL,
+    CONSTRAINT refresh_token_pkey PRIMARY KEY (id)
+
+)
+

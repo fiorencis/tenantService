@@ -10,6 +10,8 @@ public class TenantDbContext : DbContext
      public TenantDbContext(DbContextOptions<TenantDbContext> options) : base(options) { }
 
      public DbSet<User> Users => Set<User>();
+     
+     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
      protected override void OnModelCreating(ModelBuilder modelBuilder)
      {
@@ -60,6 +62,47 @@ public class TenantDbContext : DbContext
                .HasColumnName("status")
                .HasColumnType("smallint")
                .IsRequired().HasDefaultValue(UserStatus.Active);
+
+
+          modelBuilder.Entity<RefreshToken>()
+               .ToTable("refreshtoken", "infra") 
+               .HasKey(u => u.Id).HasName("refresh_token_pkey"); 
+
+          modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.Id)
+               .HasColumnName("id")
+               .HasColumnType("integer")
+               .IsRequired();
+
+           modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.Token)
+               .HasColumnName("token")
+               .HasColumnType("varchar(256)")
+               .IsRequired();
+
+           modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.Username)
+               .HasColumnName("username")
+               .HasColumnType("varchar(32)")
+               .IsRequired();
+
+           modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.ExpiresAt)
+               .HasColumnName("expiresat")
+               .HasColumnType("timestampz")
+               .IsRequired();
+
+          modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.CreatedAt)
+               .HasColumnName("createdat")
+               .HasColumnType("timestampz")
+               .IsRequired();
+
+          modelBuilder.Entity<RefreshToken>()
+               .Property(u => u.IsRevoked)
+               .HasColumnName("isrevoked")
+               .HasColumnType("boolean")
+               .IsRequired();
      }
 
 }

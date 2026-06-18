@@ -1,22 +1,24 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TenantService.Application;
-using TenantService.Application.DTOs;
 
 namespace TenantService.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class InfrastructureController : TenantBaseController
+[Authorize]
+[Route("api/infra")]
+public class InfraController : TenantBaseController
 {
     protected readonly IUserService _userService;
 
-    public InfrastructureController(IUserService userService, ILogger<TenantBaseController> logger) : base(logger)
+    public InfraController(IUserService userService, IConfiguration configuration, ILogger<TenantBaseController> logger) : base(configuration, logger)
     {
         _userService = userService;
     }
         
     [HttpGet("info")]
+    [AllowAnonymous]
     public async Task<IActionResult> Info()
     { 
         _logger.LogDebug("Service Info request");
@@ -24,7 +26,6 @@ public class InfrastructureController : TenantBaseController
         var assembly = Assembly.GetExecutingAssembly();
 
         var copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright;
-
         var version = assembly.GetName().Version;
         var title = assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product;
 
@@ -34,6 +35,7 @@ public class InfrastructureController : TenantBaseController
 
         return Ok(data);
     }
+
 
     [HttpPost("add-user")]
     public async Task<IActionResult> AddUser([FromBody] UserOperationRequest request)
@@ -46,19 +48,19 @@ public class InfrastructureController : TenantBaseController
     }
 
 
-    [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
-    {
-        _logger.LogWarning($"Attempting to login User {request.Username}");
+    // [HttpPost("login")]
+    // public async Task<IActionResult> Login([FromBody] UserLoginRequest request)
+    // {
+    //     _logger.LogWarning($"Attempting to login User {request.Username}");
 
-        var isValid = await _userService.ValidateUserCredentialsAsync(request.Username, request.Password);
+    //     var isValid = await _userService.ValidateUserCredentialsAsync(request.Username, request.Password);
 
-        if (!isValid)
-        {
-            return Unauthorized();
-        }
+    //     if (!isValid)
+    //     {
+    //         return Unauthorized();
+    //     }
 
-        return Ok(new { Message = "Login successful." });
-    }
+    //     return Ok(new { Message = "Login successful." });
+    // }
 
 }

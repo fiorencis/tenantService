@@ -10,3 +10,12 @@ public sealed class UsernameAlreadyExistsException : Exception
 
 	public string Username { get; }
 }
+
+
+public sealed class LoginCredentialsException : Exception
+{
+	public LoginCredentialsException(string username) 
+		: base($"Invalid login credentials for user {username}")
+	{
+	}
+}
