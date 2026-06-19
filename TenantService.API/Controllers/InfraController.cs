@@ -6,7 +6,7 @@ using TenantService.Application;
 namespace TenantService.API.Controllers;
 
 [ApiController]
-[Authorize]
+//[Authorize]
 [Route("api/infra")]
 public class InfraController : TenantBaseController
 {
@@ -18,7 +18,8 @@ public class InfraController : TenantBaseController
     }
         
     [HttpGet("info")]
-    [AllowAnonymous]
+    [Authorize]
+    //[AllowAnonymous]
     public async Task<IActionResult> Info()
     { 
         _logger.LogDebug("Service Info request");

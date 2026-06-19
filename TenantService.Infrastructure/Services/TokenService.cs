@@ -29,24 +29,29 @@ public class TokenService : ApplicationService, ITokenService
 
     public string GenerateAccessToken(string username, string role)
     {
-        var jwt    = _config.GetSection("Jwt");
-        var key    = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
-        var creds  = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var jwt = _config.GetSection("Jwt");
+
+        var secret = Environment.GetEnvironmentVariable("TOKEN_KEY") 
+        ?? _config.GetValue<string>(jwt["Key"]) 
+        ?? "supersecretkey1234567890!@#$%^&*()@@_$QuLoW%qwerty&potrimao99@###][";
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
         var expiry = DateTime.UtcNow.AddMinutes(double.Parse(jwt["ExpiryMinutes"]!));
 
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(ClaimTypes.Name,              username),
-            new Claim(ClaimTypes.Role,              role)
+            new Claim(ClaimTypes.Name, username),
+            new Claim(ClaimTypes.Role, role)
         };
 
         var token = new JwtSecurityToken(
-            issuer:             jwt["Issuer"],
-            audience:           jwt["Audience"],
-            claims:             claims,
-            expires:            expiry,
+            issuer: jwt["Issuer"],
+            audience: jwt["Audience"],
+            claims: claims,
+            expires: expiry,
             signingCredentials: creds
         );
 
@@ -62,7 +67,7 @@ public class TokenService : ApplicationService, ITokenService
             Token     = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
             Username  = username,
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(double.Parse(jwt["ExpiryMinutes"]!)),
+            ExpiresAt = DateTime.UtcNow.AddDays(double.Parse(jwt["RefreshExpiryDays"]!)),
             IsRevoked = false
         };
     }

@@ -7,12 +7,13 @@ using TenantService.Infrastructure;
 using TenantService.Infrastructure.Extensions;
 using TenantService.Application.Extensions;
 using TenantService.Infrastructure.Services;
-using Microsoft.OpenApi;
+using Scalar.AspNetCore;
+using TenantService.API.Infrastructure;
 
 // create the web application builder
 var builder = WebApplication.CreateBuilder(args);
 
-// create the configuration file
+// gets the configuration file settings
 IConfiguration config = builder.Configuration;
 
 //Gets Connection String from environment variable or appsettings.json
@@ -29,53 +30,65 @@ Log.Logger = new LoggerConfiguration()
         outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss} [{Level}] {Message}{NewLine}{Exception}")
     .CreateLogger();
 
-// add OpenApi services
-builder.Services.AddOpenApi();
-builder.Services.AddEndpointsApiExplorer();
+Log.Logger.Warning($"Logging initialized...");
 
-builder.Services.AddSwaggerGen(options =>
+var jwt = config.GetSection("Jwt");
+
+var secret = Environment.GetEnvironmentVariable("TOKEN_KEY") 
+    ?? config.GetValue<string>(jwt["Key"]) 
+    ?? "supersecretkey1234567890!@#$%^&*()@@_$QuLoW%qwerty&potrimao99@###][";
+
+Log.Logger.Warning($"Used JWT Secret Key: {secret}...");
+var keyBytes = Encoding.UTF8.GetBytes(secret);
+
+builder.Services.AddAuthentication(options =>
 {
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Inserisci il token JWT nel formato: Bearer {token}"
-    });
-});
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
 .AddJwtBearer(options =>
 {
-    var secret = Environment.GetEnvironmentVariable("TOKEN_KEY") ??
-        config.GetValue<string>("Key") ??
-        "supersecretkey1234567890!@#$%^&*()";
-
-    options.TokenValidationParameters = new TokenValidationParameters
+     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateIssuer = true, // Imposta a true in produzione
+        ValidIssuer = jwt["Issuer"],
+        ValidateAudience = true, // Imposta a true in produzione
+        ValidAudience = jwt["Audience"],
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = "TenantServiceApi",
-        ValidAudience = "TenantServiceClient",
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ClockSkew = TimeSpan.Zero // Rimuove il ritardo di tolleranza di default (5 min)
+    };
+    
+    options.Events = new JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            Log.Logger.Warning($"!!! Autenticazione fallita: {context.Exception.Message}");
+            return Task.CompletedTask;
+        }
     };
 });
 
+// add OpenApi services
+builder.Services.AddOpenApi(options =>
+{
+    // Aggiunge la definizione JWT direttamente nel documento OpenAPI
+    options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+});
+//builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAuthorization();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
+        policy.WithOrigins("http://localhost:5040") // L'URL del tuo frontend
+                .AllowAnyMethod()
+                .WithHeaders("Authorization", "Content-Type")
+                .AllowCredentials();
     });
 });
 
@@ -88,6 +101,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddHostedService<TokenCleanupService>();
 
 builder.Services.AddControllers();
+
 builder.Services.AddProblemDetails();
 //builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 
@@ -95,17 +109,22 @@ var app = builder.Build();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    Log.Logger.Warning("USING SCALAR / OPENAPI!!!");
     app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    
+    // Genera l'interfaccia grafica Scalar invece di Swagger
+    app.MapScalarApiReference();     
+
 }
+
+//app.UseHttpsRedirection();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 var supportedCultures = new[]
 {

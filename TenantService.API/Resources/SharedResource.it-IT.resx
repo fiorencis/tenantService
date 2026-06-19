@@ -120,6 +120,7 @@
   <data name="About_message" xml:space="preserve">
     <value>Api Web di Vetcetera</value>
   </data>
+  
   <data name="ClinicStatuses_0" xml:space="preserve">
     <value>Nuova</value>
   </data>
