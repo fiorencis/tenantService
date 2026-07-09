@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TenantService.API.Controllers;
 using TenantService.Application;
+using TenantService.Application.DTOs;
 using TenantService.Application.Services;
 
 namespace TenantService.API;
@@ -36,4 +37,19 @@ public class AuthController : TenantBaseController
 
         return Ok(tokenpair);
     }
+
+    // Tenant service user logout procedure by refresh token invalidation
+    [HttpPost("refresh")]
+    [AllowAnonymous]    
+    public async Task<IActionResult> Refresh([FromBody] RefreshRequestDto request)
+    {
+        var tokenpair = await _tokenService.RefreshTokenPairAsync(request.AccessToken, request.RefreshToken);
+
+
+
+
+
+        return Ok(tokenpair);
+    }
+
 }

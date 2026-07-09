@@ -27,6 +27,7 @@ public class TokenService : ApplicationService, ITokenService
         _unitOfWork = unitOfWork;
     } 
 
+    // Generates a JWT access token for the specified username and role
     public string GenerateAccessToken(string username, string role)
     {
         var jwt = _config.GetSection("Jwt");
@@ -57,7 +58,8 @@ public class TokenService : ApplicationService, ITokenService
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
-
+    
+    // Generates a refresh token for the specified username
     public RefreshToken GenerateRefreshToken(string username)
     {
         var jwt = _config.GetSection("Jwt");
@@ -72,19 +74,37 @@ public class TokenService : ApplicationService, ITokenService
         };
     }
 
+    public async Task<TokenPairDto> CreateTokenPair(string username, string role, CancellationToken cancellationToken = default)
+    {
+        var accessToken = GenerateAccessToken(username, role);
+        var refreshToken = GenerateRefreshToken(username);
+
+        _logger.LogInformation("Creating new token pair for user {Username}", username);
+
+        await _tokenRepository.AddAsync(refreshToken, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return new TokenPairDto(accessToken, refreshToken.Token);
+    }
+
+    // Retrieves the claims principal from an expired JWT token
     public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
     {
         var jwt = _config.GetSection("Jwt");
 
+        var secret = Environment.GetEnvironmentVariable("TOKEN_KEY") 
+        ?? _config.GetValue<string>(jwt["Key"]) 
+        ?? "supersecretkey1234567890!@#$%^&*()@@_$QuLoW%qwerty&potrimao99@###][";
+
         var validationParams = new TokenValidationParameters
         {
             ValidateIssuer           = true,
+            ValidIssuer              = jwt["Issuer"],
             ValidateAudience         = true,
+            ValidAudience            = jwt["Audience"],
             ValidateLifetime         = false, // ← ignora la scadenza intenzionalmente
             ValidateIssuerSigningKey = true,
-            ValidIssuer              = jwt["Issuer"],
-            ValidAudience            = jwt["Audience"],
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!))
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret))
         };
 
         var principal = new JwtSecurityTokenHandler()
@@ -98,15 +118,37 @@ public class TokenService : ApplicationService, ITokenService
         return principal;
     }
 
-    public async Task<TokenPairDto> CreateTokenPair(string username, string role, CancellationToken cancellationToken = default)
+    public async Task<TokenPairDto> RefreshTokenPairAsync(string accessToken, string refreshToken)
     {
-        var accessToken  = GenerateAccessToken(username, role);
-        var refreshToken = GenerateRefreshToken(username);
+        var principal = GetPrincipalFromExpiredToken(accessToken);
 
-        _tokenRepository.AddAsync(refreshToken, cancellationToken);
-		_unitOfWork.SaveChangesAsync(cancellationToken);
+        if (principal == null)
+        {
+            throw new SecurityTokenException("Invalid access token");
+        }
 
-        return new TokenPairDto(accessToken, refreshToken.Token);
+        var username = principal.Identity?.Name;
+        if (username == null)
+        {
+            throw new SecurityTokenException("Invalid access token");
+        }
+
+        _logger.LogInformation($"Attempting to refresh token for user {username} with refresh token {refreshToken}");
+
+        var storedRefreshTokenList = await _tokenRepository.ListAsync(rt => rt.Token == refreshToken && rt.Username == username);
+        var storedRefreshToken = storedRefreshTokenList.FirstOrDefault();
+        
+        if (storedRefreshToken == null || storedRefreshToken.IsRevoked || storedRefreshToken.ExpiresAt <= DateTime.UtcNow)
+        {
+            throw new SecurityTokenException("Invalid refresh token");
+        }
+
+        // Invalidate the old refresh token
+        storedRefreshToken.IsRevoked = true;
+        _tokenRepository.Update(storedRefreshToken);
+
+        _logger.LogInformation("Refresh token {RefreshToken} for user {Username} has been revoked", storedRefreshToken.Token, username);
+
+        return await CreateTokenPair(username, principal.FindFirst(ClaimTypes.Role)?.Value ?? "User");
     }
-
 }

@@ -10,4 +10,7 @@ public interface ITokenService : IApplicationService
     RefreshToken GenerateRefreshToken(string username);
     ClaimsPrincipal? GetPrincipalFromExpiredToken(string token);
     Task<TokenPairDto> CreateTokenPair(string username, string role, CancellationToken cancellationToken = default);
+
+
+    Task<TokenPairDto> RefreshTokenPairAsync(string accessToken, string refreshToken);
 }
