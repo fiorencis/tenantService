@@ -2,5 +2,5 @@
 
 public interface IInitService : IApplicationService
 {
-    Task<String> InitializeDatabase (CancellationToken cancellationToken = default);
+    Task<String> InitializeDatabaseAsync (CancellationToken cancellationToken = default);
 }

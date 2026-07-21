@@ -17,6 +17,34 @@ public class TenantDbContext : DbContext
 
      protected override void OnModelCreating(ModelBuilder modelBuilder)
      {
+          // DbUpdate entity configuration
+          modelBuilder.Entity<DbUpdate>()
+               .ToTable("dbupdate", "infra") 
+               .HasKey(u => u.Id).HasName("dbupdate_pkey");
+
+          modelBuilder.Entity<DbUpdate>()
+               .Property(u => u.Id)
+               .HasColumnName("id")
+               .HasColumnType("integer")
+               .IsRequired();
+
+          modelBuilder.Entity<DbUpdate>()
+               .Property(u => u.Version)
+               .HasColumnName("version")
+               .HasColumnType("varchar(32)")
+               .IsRequired();    
+
+          modelBuilder.Entity<DbUpdate>()
+               .Property(u => u.AppliedAt)
+               .HasColumnName("appliedat")
+               .HasColumnType("timestampz")
+               .IsRequired()
+               .HasDefaultValueSql("CURRENT_TIMESTAMP");      
+
+          modelBuilder.Entity<DbUpdate>()
+               .HasIndex(u => u.Version)
+               .IsUnique();
+
           modelBuilder.Entity<User>()
                .ToTable("user", "infra") 
                .HasKey(u => u.Id).HasName("user_pkey"); 

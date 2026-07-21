@@ -44,17 +44,12 @@ public class InfraController : TenantBaseController
     public async Task<IActionResult> Initialize()
     {
 
-
-
-
-
-
-
+        var result = await _initService.InitializeDatabaseAsync();
 
 
 
         
-            return Ok();    
+            return Ok(result);    
     }
 
     [HttpPost("add-user")]
